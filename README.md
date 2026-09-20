@@ -46,6 +46,13 @@ pip install -e .
 
 Requires the `espeak-ng` system package for `/voice` (`sudo apt-get install espeak-ng`).
 
+To launch with just `aion` from any shell (without activating the venv), link the
+launcher onto your PATH:
+
+```bash
+ln -sf "$(pwd)/python312/bin/aion" ~/.local/bin/aion
+```
+
 ## Train
 
 ```bash
