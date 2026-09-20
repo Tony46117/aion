@@ -12,6 +12,7 @@ pure Python, and grows from every conversation you have with it.
 |---|---|
 | `cli.py` | Terminal app (Rich + prompt_toolkit) — the opencode-style UI |
 | `engine.py` | Jung persona brain: TF-IDF retrieval + char-ngram logistic classifier + generative composer |
+| `introspect.py` | The inner life: echoes the seeker's own words, self-reflection, original imagery — speaks *to* you, not from an index |
 | `humanizer.py` | Humanizes engine output: contractions, hedging, rhythm, Jungian interjections |
 | `learner.py` | Learns from every conversation; persists memory to `~/.aion/` so aion gets smarter over time |
 | `voice.py` | Jung's voice: espeak-ng TTS with a lowered pitch/slowed cadence (bilingual German accent voice) |
@@ -28,6 +29,8 @@ The persona is trained on the Jungian books in `aion/data/books/`:
 
 - *Man and His Symbols* — C.G. Jung (with M.-L. von Franz, J. Henderson, J. Jacobi, A. Jaffé)
 - *Catafalque: Carl Jung and the End of Humanity* — Peter Kingsley
+- *The Archetypes and the Collective Unconscious* — C.G. Jung
+- *Modern Man in Search of a Soul* — C.G. Jung
 
 Run `python -m aion.ingest` to rebuild `data/corpus.txt` whenever a book is added,
 then retrain (see below).
@@ -70,6 +73,8 @@ Then, inside the session:
 | `/voice` | toggles Jung's voice — spoken answers with his cadence |
 | `/help` | list all commands |
 | `/stats` | what aion has learned from your conversations so far |
+| `/remember` | tell aion something to keep ("my name is Antony", "I live in Nairobi", "I fear spiders"...) |
+| `/whoami` | what aion knows about you |
 | `/forget` | wipe learned memory |
 | `/quit` | leave (aion remembers your conversations) |
 
@@ -80,6 +85,26 @@ back to the inner life — the shadow, the anima/animus, complexes, dreams, indi
 The `humanizer` module keeps the voice imperfect and alive: contractions, hedges,
 rhetorical questions, the occasional German word — the way a person actually talks,
 not the way a machine writes.
+
+## How aion speaks (and remembers)
+
+aion is built not to recite the books but to *react*:
+
+- **Mirroring** — it picks up one of your own words and holds it up to the light:
+  *"You chose the word 'drowning'; the psyche usually chooses better than we do."*
+- **Introspection** — it owns an inner state: *"Something in me tightens when I hear that."*
+- **Original imagery** — images composed for the moment, keyed to the topic, never
+  quotations: *"A dream is a letter written in water; read it quickly or it dries into nothing."*
+- **Framed remembering** — corpus lines appear rarely, and framed as memory:
+  *"There is a line I have carried for years: ..."*
+
+It also learns *you*, continuously and durably (`~/.aion/`):
+
+- your **name** — say "my name is Antony" once (or `/remember my name is Antony`);
+  every future session greets you: *"Welcome back, Antony."*
+- **facts about you** — age, home, work, fears, recurring dreams — extracted from
+  conversation and resurfaced when your words touch them again
+- every exchange feeds the TF-IDF memory, so retrieval bends toward what you talk about
 
 ---
 

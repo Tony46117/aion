@@ -57,6 +57,8 @@ def _print_help() -> None:
     t.add_row("[bold cyan]/chat[/]", "start a session - talk (conversation) or deep (analysis)")
     t.add_row("[bold cyan]/voice[/]", "toggle Jung's voice on/off")
     t.add_row("[bold cyan]/stats[/]", "what aion has learned so far")
+    t.add_row("[bold cyan]/remember[/]", "tell aion something to keep (e.g. /remember my name is Antony)")
+    t.add_row("[bold cyan]/whoami[/]", "what aion knows about you")
     t.add_row("[bold cyan]/forget[/]", "wipe everything aion has learned from you")
     t.add_row("[bold cyan]/help[/]", "this list")
     t.add_row("[bold cyan]/quit[/]", "leave (memory is kept)")
@@ -105,11 +107,17 @@ def main() -> int:
             return 1
 
     voice_on = False
+    s = engine.stats()
     console.print(
-        f"[dim]memory: {engine.stats()['remembered_turns']} turns remembered · "
-        f"corpus: {engine.stats()['knowledge_base']:,} paragraphs · "
+        f"[dim]memory: {s['remembered_turns']} turns remembered · "
+        f"corpus: {s['knowledge_base']:,} paragraphs · "
         f"voice: {'on' if voice_on else 'off'}[/dim]\n"
     )
+    # a returning seeker is greeted by name
+    name = engine.learner.name()
+    if name:
+        console.print(f"[magenta]Welcome back, {name}.[/magenta]")
+        _speak_async(f"Welcome back, {name}.", False, False)
 
     mode: str | None = None
     deep = False
@@ -143,6 +151,34 @@ def main() -> int:
             t.add_row("favorite topic of yours", s.get("mood", {}).get("favorite_topic") or "-")
             t.add_row("memory file", s.get("memory_file", "-"))
             console.print(Panel(t, title="aion's mind", border_style="cyan", expand=False))
+            continue
+
+        if cmd == "/remember":
+            console.print("[dim]Speak. I will keep it.[/dim]")
+            try:
+                fact = console.input("[bold magenta]you ›[/bold magenta] ").strip()
+            except (EOFError, KeyboardInterrupt):
+                continue
+            if fact:
+                engine.learner.learn(fact)
+                known = engine.learner.name()
+                console.print(
+                    f"[cyan]kept.[/cyan]"
+                    + (f" [dim](I will call you {known}, then.)[/dim]" if known else "")
+                )
+            continue
+
+        if cmd == "/whoami":
+            facts = engine.learner.facts
+            if not facts:
+                console.print("[dim]You have not yet told me who you are.[/dim]")
+            else:
+                t = Table.grid(padding=(0, 2))
+                t.add_row("name", f"[cyan]{facts.get('name', '-')}[/]")
+                for k, v in facts.items():
+                    if k != "name":
+                        t.add_row(k, f"[cyan]you {v}[/]")
+                console.print(Panel(t, title="what aion knows of you", border_style="magenta", expand=False))
             continue
 
         if cmd == "/forget":

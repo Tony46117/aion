@@ -13,6 +13,7 @@ import random
 import re
 from pathlib import Path
 
+from . import introspect
 from .humanizer import humanize
 from .learner import Learner
 
@@ -105,6 +106,7 @@ class Engine:
         self.kb: dict = {"paragraphs": [], "sentences": []}
         self.learner = Learner()
         self._torch_ready = False
+        self._session_turn = 0
         self._load()
 
     # ------------------------------------------------------------------
@@ -233,33 +235,77 @@ class Engine:
         return hits[:2]
 
     def _core(self, user_text: str, deep: bool) -> str:
+        """Compose a reply that reacts like a person, not an index.
+
+        Order: mirror the seeker's own word, admit an inner state, offer the
+        teaching, add an *original* image, and only occasionally surface a
+        corpus line - framed as something remembered, not recited.
+        """
         topics = self._topics_in(user_text)
         retrieved = self._retrieve(user_text)
 
-        # Harvest one strong quote from retrieval, if any paragraph is quotable.
+        # Harvest a strong corpus sentence only sometimes; deep sessions allow more.
         quote = None
-        for p in retrieved:
-            sents = re.split(r"(?<=[.!?])\s+", p)
-            long_ones = [s for s in sents if 60 <= len(s) <= 260]
-            if long_ones:
-                scored = max(long_ones, key=self._style_score)
-                if self._style_score(scored) > 0:
-                    quote = scored
-                    break
+        if deep or self.rng.random() < 0.45:
+            for p in retrieved:
+                sents = re.split(r"(?<=[.!?])\s+", p)
+                long_ones = [s for s in sents if 60 <= len(s) <= 260]
+                if long_ones:
+                    scored = max(long_ones, key=self._style_score)
+                    if self._style_score(scored) > 0:
+                        quote = scored
+                        break
 
+        main = topics[0]
         parts: list[str] = []
-        if not deep:
-            parts.append(self.rng.choice(OPENERS))
-        for t in topics:
+
+        # 1. mirror: hold one of the seeker's own words up to the light
+        if not deep and self.rng.random() < 0.55:
+            echo = introspect.echo(user_text, self.rng)
+            if echo:
+                parts.append(echo)
+
+        # 2. introspection: aion owns an inner reaction
+        if self.rng.random() < (0.35 if deep else 0.50):
+            parts.append(introspect.self_note(self.rng))
+
+        # 3. the teaching - one anchor in talk mode, richer in deep mode
+        for t in (topics if deep else topics[:1]):
             parts.append(self.rng.choice(ANCHORS.get(t, ANCHORS["psyche"])))
+
+        # 4. an original image, composed for the moment (never a quotation)
+        if self.rng.random() < (0.70 if deep else 0.65):
+            parts.append(introspect.image(main, self.rng))
+
+        # 5. corpus quote, framed as remembered speech: rare in talk, common in deep
         if quote and quote.lower() not in " ".join(parts).lower():
-            parts.append(quote)
+            if self.rng.random() < (0.90 if deep else 0.25):
+                parts.append(f'{introspect.quote_frame(self.rng)} "{quote}"')
+
+        # 6. awareness of the conversation itself (deep sessions)
+        if deep and self.rng.random() < 0.25:
+            parts.append(introspect.dialogue_note(self.rng))
+
+        # 7. the question that turns it back on the seeker
         parts.append(self.rng.choice(CLOSERS))
         return " ".join(parts)
 
     # ------------------------------------------------------------------
     def reply(self, user_text: str, deep: bool = False, user: str = "seeker") -> str:
         core = self._core(user_text, deep)
+
+        # greet a remembered seeker by name once per session
+        first_turn = self._session_turn == 0
+        self._session_turn += 1
+        name = self.learner.name()
+        if first_turn and name and self.rng.random() < 0.75 and core:
+            core = f"So, {name} - {core[0].lower()}{core[1:]}"
+
+        # resurface a remembered fact when the seeker's words touch it
+        fact = self.learner.relevant_fact(user_text)
+        if fact and self.rng.random() < 0.8:
+            core = f"{core} {fact}"
+
         moods = self.learner.mood_profile()
         text = humanize(core, rng=self.rng, mood=moods, deep=deep)
         self.learner.record_turn(user_text, text, deep=deep)
