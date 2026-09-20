@@ -1,0 +1,9 @@
+# training artifacts kept out of git; trained models ARE committed
+train.log
+style.log
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.python-version

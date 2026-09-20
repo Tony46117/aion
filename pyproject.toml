@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aion"
+version = "1.0.0"
+description = "A Jungian AI for the terminal — trained on the corpus, learns from every conversation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Tony46117" }]
+dependencies = [
+  "numpy>=2.0",
+  "scikit-learn>=1.5",
+  "torch>=2.2",
+  "rich>=13.7",
+  "prompt_toolkit>=3.0",
+  "pypdf>=4.0",
+  "tqdm>=4.66",
+]
+
+[project.scripts]
+aion = "aion.cli:main"
+
+[tool.setuptools]
+packages = ["aion"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+aion = ["models/*.joblib", "models/*.npz", "models/*.pth", "models/*.json", "data/*.txt", "data/books/*.pdf"]
